@@ -1,0 +1,156 @@
+/* Styles for Conversion Studio & String Simulator */
+
+/* Playback Control Bar */
+.playback-bar {
+    background-color: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.playback-buttons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.step-indicator {
+    font-family: 'Fira Code', monospace;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--slate-800);
+    padding: 4px 10px;
+    background-color: #f1f5f9;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Algorithm Explanation Box */
+.step-explanation-box {
+    background: #f8fafc;
+    border-left: 4px solid var(--primary-color);
+    padding: 12px 16px;
+    border-radius: 0 6px 6px 0;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.86rem;
+    white-space: pre-line;
+    line-height: 1.6;
+    color: #1e293b;
+    border-top: 1px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Trace Table Active Row */
+.table-trace tbody tr.trace-active {
+    background-color: #fef3c7 !important;
+    font-weight: 600;
+}
+
+.table-trace tbody tr.trace-accepted {
+    background-color: #d1fae5 !important;
+}
+
+.table-trace tbody tr.trace-rejected {
+    background-color: #fee2e2 !important;
+}
+
+/* Result Banner */
+.result-banner {
+    border-radius: 8px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.result-banner.accepted {
+    background-color: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    color: #065f46;
+}
+
+.result-banner.rejected {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+}
+
+/* Node Inspector Panel */
+.inspector-card {
+    font-size: 0.88rem;
+}
+
+.inspector-key {
+    font-weight: 600;
+    color: #64748b;
+}
+
+.inspector-val {
+    font-family: 'Fira Code', monospace;
+    font-weight: 500;
+    color: #0f172a;
+}
+
+/* Comparison Metric Card */
+.metric-box {
+    padding: 12px;
+    border-radius: 6px;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    text-align: center;
+}
+
+.metric-number {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    font-family: 'Fira Code', monospace;
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+}
+
+/* Sequence breadcrumb */
+.sequence-trail {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 10px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-family: 'Fira Code', monospace;
+}
+
+.sequence-node {
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    font-size: 0.85rem;
+}
+
+.sequence-node.active {
+    background-color: #fde047;
+    border-color: #eab308;
+    color: #854d0e;
+    font-weight: 700;
+}
+
+.sequence-arrow {
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+

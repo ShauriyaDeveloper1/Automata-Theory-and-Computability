@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+
+{% block title %}Conversion Studio | Subset Construction{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/simulation.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-4">
+    <!-- Header with Action Links -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3 mb-3 border-bottom">
+        <div>
+            <h3 class="fw-bold text-slate-900 mb-0">NFA-to-DFA Conversion Studio</h3>
+            <p class="text-secondary small mb-0">Subset Construction (Powerset Algorithm) with Step-by-Step Traversal.</p>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="/builder" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-pencil-square"></i> Edit NFA
+            </a>
+            <button class="btn btn-outline-secondary btn-sm" id="btn-export-dfa-csv">
+                <i class="bi bi-filetype-csv"></i> Export DFA CSV
+            </button>
+            <a href="/simulator" class="btn btn-primary btn-sm px-3 fw-semibold">
+                <i class="bi bi-play-circle"></i> Test Strings on Both &rarr;
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Non-Tech Theory & Viva Card (Collapsible) -->
+    <div class="card mb-4 border-primary-subtle bg-light shadow-sm">
+        <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between cursor-pointer" data-bs-toggle="collapse" data-bs-target="#conversionTheoryCollapse" aria-expanded="true">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary rounded-circle p-2"><i class="bi bi-lightbulb-fill"></i></span>
+                    <span class="fw-bold text-slate-900">How Subset Construction Works in Plain English (Viva Ready)</span>
+                </div>
+                <button class="btn btn-sm btn-link text-decoration-none text-primary p-0">Toggle Theory <i class="bi bi-chevron-down"></i></button>
+            </div>
+            <div class="collapse show mt-3 pt-3 border-top" id="conversionTheoryCollapse">
+                <div class="row g-3 small">
+                    <div class="col-md-3">
+                        <div class="p-3 bg-white rounded border h-100">
+                            <h6 class="fw-bold text-primary mb-1">1. The Core Idea</h6>
+                            <p class="text-secondary mb-0">
+                                An NFA can branch into multiple states at once. A DFA can only be in one state. The algorithm bundles multiple NFA states into single <b>"combo states"</b> (e.g. State B represents {q0, q1}).
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-white rounded border h-100">
+                            <h6 class="fw-bold text-primary mb-1">2. Union of Branches</h6>
+                            <p class="text-secondary mb-0">
+                                To find where a combo state goes on symbol <b>'0'</b>, we take everywhere its member states can go in the NFA, and combine them together (Union).
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-white rounded border h-100">
+                            <h6 class="fw-bold text-success mb-1">3. Final State Rule</h6>
+                            <p class="text-secondary mb-0">
+                                If a DFA combo contains <b>at least one NFA final state</b>, that DFA state automatically becomes an <b>Accepting State</b> (marked with double circles)!
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="p-3 bg-white rounded border h-100">
+                            <h6 class="fw-bold text-danger mb-1">4. Dead / Trap State (&empty;)</h6>
+                            <p class="text-secondary mb-0">
+                                If an NFA state has no arrow for an input symbol, the DFA creates an absorbing <b>Dead State (&empty;)</b> to ensure every state has a complete deterministic answer.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Algorithm Playback Controls Card -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body p-3">
+            <div class="playback-bar">
+                <!-- Step Counter Badge -->
+                <div class="d-flex align-items-center gap-2">
+                    <span class="step-indicator" id="step-counter-label">Step 0 / 0</span>
+                    <div id="metric-dead-state-badge"></div>
+                </div>
+
+                <!-- Playback Buttons -->
+                <div class="playback-buttons">
+                    <button class="btn btn-outline-secondary btn-sm" id="btn-start-step" title="First Step">
+                        <i class="bi bi-skip-start-fill"></i>
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" id="btn-prev-step" title="Previous Step">
+                        <i class="bi bi-chevron-left"></i> Prev
+                    </button>
+                    <button class="btn btn-primary btn-sm px-3" id="btn-play" title="Play Automatically">
+                        <i class="bi bi-play-fill"></i> Play
+                    </button>
+                    <button class="btn btn-warning btn-sm px-3 d-none" id="btn-pause" title="Pause Playback">
+                        <i class="bi bi-pause-fill"></i> Pause
+                    </button>
+                    <button class="btn btn-outline-secondary btn-sm" id="btn-next-step" title="Next Step">
+                        Next <i class="bi bi-chevron-right"></i>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" id="btn-reset-playback" title="Reset to Start">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Progress Slider & Bar -->
+            <div class="mt-3">
+                <input type="range" class="form-range" id="step-slider" min="0" max="0" value="0">
+                <div class="progress" style="height: 4px;">
+                    <div class="progress-bar bg-primary" id="conversion-progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side-by-Side Automata Graphs -->
+    <div class="row g-4 mb-3">
+        <!-- NFA Graph -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                    <span class="fw-bold text-slate-900"><i class="bi bi-diagram-3 me-1 text-primary"></i> Source NFA</span>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2" id="btn-fit-nfa"><i class="bi bi-arrows-fullscreen"></i></button>
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2" id="btn-reset-nfa-layout"><i class="bi bi-arrow-repeat"></i></button>
+                    </div>
+                </div>
+                <div class="card-body p-0 position-relative">
+                    <div id="conversion-nfa-graph" class="graph-container"></div>
+                    <div class="graph-legend">
+                        <div class="legend-item"><span class="legend-dot initial"></span> <span>Start (&rarr;)</span></div>
+                        <div class="legend-item"><span class="legend-dot accepting"></span> <span>Accepting (*)</span></div>
+                        <div class="legend-item"><span class="legend-dot dead"></span> <span>Dead State (&empty;)</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DFA Graph -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-bold text-slate-900"><i class="bi bi-diagram-3-fill me-1 text-success"></i> Generated DFA</span>
+                        <span class="badge bg-success bg-opacity-10 text-success border border-success-subtle font-monospace small">Deterministic</span>
+                    </div>
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2" id="btn-fit-dfa"><i class="bi bi-arrows-fullscreen"></i></button>
+                        <button class="btn btn-sm btn-outline-secondary py-0 px-2" id="btn-reset-dfa-layout"><i class="bi bi-arrow-repeat"></i></button>
+                    </div>
+                </div>
+                <div class="card-body p-0 position-relative">
+                    <div id="conversion-dfa-graph" class="graph-container"></div>
+                    <div class="graph-legend">
+                        <div class="legend-item"><span class="legend-dot initial"></span> <span>Start (&rarr;)</span></div>
+                        <div class="legend-item"><span class="legend-dot accepting"></span> <span>Accepting (*)</span></div>
+                        <div class="legend-item"><span class="legend-dot dead"></span> <span>Dead State (&empty;)</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Step Explanation Box (Directly below diagrams for easy observation during simulation) -->
+    <div class="card mb-4 shadow-sm border-primary border-opacity-25" id="step-explanation-card">
+        <div class="card-header bg-primary bg-opacity-10 py-2 d-flex justify-content-between align-items-center">
+            <span class="fw-bold text-primary">
+                <i class="bi bi-journal-text me-2"></i>Live Step Explanation (Subset Construction)
+            </span>
+            <span class="badge bg-primary" id="step-badge-counter">Step 0</span>
+        </div>
+        <div class="card-body p-3">
+            <div class="step-explanation-box" id="step-explanation-content">
+                Ready to begin conversion. Click Play or Next Step to start subset construction.
+            </div>
+        </div>
+    </div>
+
+    <!-- Inspector & Comparison & Transition Table Grid -->
+    <div class="row g-4 mb-4">
+        <!-- Node Inspector & Metrics -->
+        <div class="col-lg-4">
+            <!-- Node Inspector Card -->
+            <div class="card mb-3">
+                <div class="card-header py-2">
+                    <span class="small text-uppercase fw-bold text-secondary"><i class="bi bi-info-circle me-1"></i> DFA State Inspector</span>
+                </div>
+                <div class="card-body p-3" id="dfa-node-inspector">
+                    <p class="text-muted small mb-0 font-monospace">Click any state in the DFA graph above to inspect its constituent NFA subset and transition details.</p>
+                </div>
+            </div>
+
+            <!-- Side-by-Side Metrics Summary -->
+            <div class="card">
+                <div class="card-header py-2">
+                    <span class="small text-uppercase fw-bold text-secondary"><i class="bi bi-bar-chart me-1"></i> Automata Metrics Comparison</span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <div class="metric-box">
+                                <div class="metric-number text-primary" id="metric-nfa-states">0</div>
+                                <div class="metric-label">NFA States</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-box">
+                                <div class="metric-number text-success" id="metric-dfa-states">0</div>
+                                <div class="metric-label">DFA States</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-box">
+                                <div class="metric-number text-primary" id="metric-nfa-accepting">0</div>
+                                <div class="metric-label">NFA Final States</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-box">
+                                <div class="metric-number text-success" id="metric-dfa-accepting">0</div>
+                                <div class="metric-label">DFA Final States</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-box">
+                                <div class="metric-number text-primary" id="metric-nfa-transitions">0</div>
+                                <div class="metric-label">NFA Transitions</div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="metric-box">
+                                <div class="metric-number text-success" id="metric-dfa-transitions">0</div>
+                                <div class="metric-label">DFA Transitions</div>
+                            </div>
+                        </div>
+                    </div>
+                    <small class="text-muted d-block mt-3" style="font-size: 0.78rem;">
+                        <i class="bi bi-info-circle me-1"></i> In subset construction, equivalent automata recognize the same language, but their state spaces differ due to the deterministic powerset expansion.
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generated DFA Transition Table -->
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-slate-900"><i class="bi bi-table me-1 text-success"></i> Complete DFA Transition Table</span>
+                    <small class="text-muted font-monospace">&rarr; Start, * Final</small>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover table-automata mb-0">
+                            <thead id="dfa-table-head"></thead>
+                            <tbody id="dfa-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/graph.js') }}?v=3.4"></script>
+<script src="{{ url_for('static', filename='js/conversion.js') }}?v=3.4"></script>
+{% endblock %}
+

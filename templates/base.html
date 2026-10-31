@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NFA-to-DFA Studio | Subset Construction{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Core Application CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=3.3">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    <!-- Global Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-slate-900 border-bottom border-secondary-subtle sticky-top">
+        <div class="container-fluid px-lg-4">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+                <span class="badge bg-primary text-white p-2 rounded-3"><i class="bi bi-diagram-3-fill fs-5"></i></span>
+                <div>
+                    <span class="fw-bold tracking-tight text-white d-block lh-sm">AutomataStudio</span>
+                    <small class="text-secondary font-monospace" style="font-size: 0.72rem;">NFA -> DFA SUBSET ENGINE</small>
+                </div>
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarMain">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-3 gap-lg-1">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/' %}active fw-semibold text-white{% endif %}" href="/">
+                            <i class="bi bi-house me-1"></i> Home
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/builder' %}active fw-semibold text-white{% endif %}" href="/builder">
+                            <i class="bi bi-pencil-square me-1"></i> NFA Builder
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/conversion' %}active fw-semibold text-white{% endif %}" href="/conversion">
+                            <i class="bi bi-shuffle me-1"></i> Conversion Studio
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == '/simulator' %}active fw-semibold text-white{% endif %}" href="/simulator">
+                            <i class="bi bi-play-circle me-1"></i> String Simulator
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="d-flex align-items-center gap-2">
+                    <span id="nav-active-badge" class="badge bg-secondary bg-opacity-75 font-monospace text-truncate d-none" style="font-size: 0.72rem; max-width: 180px;"></span>
+                    <!-- Quick Example Dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-light dropdown-toggle d-flex align-items-center gap-1" type="button" id="globalExampleDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-collection"></i> <span>Sample Automata</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" id="globalExampleList" aria-labelledby="globalExampleDropdown">
+                            <li><h6 class="dropdown-header">TOC Standard Examples</h6></li>
+                            <li><button class="dropdown-item" onclick="loadGlobalExample('binary_ends_with_01')">Ends with '01'</button></li>
+                            <li><button class="dropdown-item" onclick="loadGlobalExample('binary_contains_zero')">Contains at least one '0'</button></li>
+                            <li><button class="dropdown-item" onclick="loadGlobalExample('second_from_end_is_1')">Second from End is '1'</button></li>
+                            <li><button class="dropdown-item" onclick="loadGlobalExample('contains_substring_010')">Contains Substring '010'</button></li>
+                            <li><button class="dropdown-item" onclick="loadGlobalExample('multiple_destinations')">Branching (Multiple Dests)</button></li>
+                            <li><button class="dropdown-item" onclick="loadGlobalExample('self_loop_and_cycles')">Self-Loops & Cycles</button></li>
+                            <li><button class="dropdown-item" onclick="loadGlobalExample('starts_a_ends_b')">Starts 'a' &amp; Ends 'b'</button></li>
+                            <li><button class="dropdown-item" onclick="loadGlobalExample('dead_state_generation')">Dead / Trap State Inducer</button></li>
+                        </ul>
+                    </div>
+
+                    <a href="/builder" class="btn btn-sm btn-primary d-flex align-items-center gap-1">
+                        <i class="bi bi-plus-circle"></i> <span>New NFA</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Global Toast Notification Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+        <div id="liveToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center gap-2" id="toastMessage">
+                    <!-- Dynamic message -->
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Global Footer -->
+    <footer class="bg-slate-900 text-secondary py-3 border-top border-secondary-subtle mt-auto">
+        <div class="container text-center text-md-between d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+            <div>
+                <small class="fw-medium text-light">AutomataStudio</small> &bull;
+                <small>Interactive NFA-to-DFA Conversion & Simulation Web Application</small>
+            </div>
+            <div class="font-monospace small">
+                <span>Theory of Computation Academic Project</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Cytoscape.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.30.2/cytoscape.min.js"></script>
+    
+    <script>
+        // Global Toast Utility
+        function showNotification(message, type = 'info') {
+            const toastEl = document.getElementById('liveToast');
+            const toastMsg = document.getElementById('toastMessage');
+            if (!toastEl || !toastMsg) return;
+
+            toastEl.className = 'toast align-items-center text-white border-0';
+            let icon = 'bi-info-circle-fill';
+            if (type === 'success') {
+                toastEl.classList.add('bg-success');
+                icon = 'bi-check-circle-fill';
+            } else if (type === 'danger' || type === 'error') {
+                toastEl.classList.add('bg-danger');
+                icon = 'bi-exclamation-triangle-fill';
+            } else if (type === 'warning') {
+                toastEl.classList.add('bg-warning', 'text-dark');
+                icon = 'bi-exclamation-circle-fill';
+            } else {
+                toastEl.classList.add('bg-primary');
+            }
+
+            toastMsg.innerHTML = `<i class="bi ${icon} fs-5"></i> <span>${message}</span>`;
+            const toast = new bootstrap.Toast(toastEl, { delay: 4000 });
+            toast.show();
+        }
+
+        // Global example loader
+        async function loadGlobalExample(exampleId, targetPath = '/conversion') {
+            try {
+                const res = await fetch(`/api/examples/${exampleId}`);
+                const data = await res.json();
+                if (data.success && data.data) {
+                    localStorage.setItem('current_nfa', JSON.stringify(data.data.data));
+                    localStorage.setItem('current_nfa_id', data.data.id);
+                    localStorage.setItem('current_nfa_title', data.data.title);
+                    localStorage.removeItem('current_dfa');
+                    localStorage.removeItem('current_conversion_events');
+                    updateActiveAutomatonBadge();
+                    showNotification(`Loaded example: "${data.data.title}"`, 'success');
+                    // Reload if already on an automata page, otherwise navigate to targetPath
+                    if (window.location.pathname.startsWith('/builder') || 
+                        window.location.pathname.startsWith('/conversion') || 
+                        window.location.pathname.startsWith('/simulator')) {
+                        setTimeout(() => window.location.reload(), 300);
+                    } else {
+                        setTimeout(() => { window.location.href = targetPath; }, 300);
+                    }
+                }
+            } catch (err) {
+                showNotification('Failed to load example: ' + err.message, 'danger');
+            }
+        }
+
+        function updateActiveAutomatonBadge() {
+            const badge = document.getElementById('nav-active-badge');
+            const title = localStorage.getItem('current_nfa_title');
+            if (badge) {
+                if (title) {
+                    badge.textContent = `Active: ${title}`;
+                    badge.classList.remove('d-none');
+                } else {
+                    badge.classList.add('d-none');
+                }
+            }
+        }
+        document.addEventListener('DOMContentLoaded', updateActiveAutomatonBadge);
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

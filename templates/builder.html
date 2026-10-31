@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+
+{% block title %}NFA Builder | AutomataStudio{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/builder.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-4">
+    <!-- Top Action Toolbar -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3 mb-3 border-bottom">
+        <div>
+            <h3 class="fw-bold text-slate-900 mb-0">Dynamic NFA Builder</h3>
+            <p class="text-secondary small mb-0">Define states, alphabet symbols, and non-deterministic transitions.</p>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <button class="btn btn-outline-secondary btn-sm" id="btn-validate-nfa">
+                <i class="bi bi-check2-circle"></i> Validate NFA
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" id="btn-export-json">
+                <i class="bi bi-download"></i> Export JSON
+            </button>
+            <label class="btn btn-outline-secondary btn-sm mb-0">
+                <i class="bi bi-upload"></i> Import JSON
+                <input type="file" id="file-import-json" accept=".json" class="d-none">
+            </label>
+            <button class="btn btn-outline-secondary btn-sm" id="btn-export-csv">
+                <i class="bi bi-filetype-csv"></i> Export CSV
+            </button>
+            <button class="btn btn-outline-danger btn-sm" id="btn-reset-nfa">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
+            </button>
+            <button class="btn btn-primary btn-sm px-3 fw-semibold" id="btn-convert-nfa">
+                <i class="bi bi-shuffle"></i> Convert to DFA &rarr;
+            </button>
+        </div>
+    </div>
+
+    <!-- Stale DFA notification banner -->
+    <div id="stale-banner" class="stale-warning-banner">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i> The NFA configuration was modified. Any previously generated DFA results are now marked stale.
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Panel: State & Transition Editors -->
+        <div class="col-lg-5 col-xl-4">
+            <!-- 1. States Management Card -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                    <span class="builder-section-title mb-0"><i class="bi bi-circle"></i> 1. States</span>
+                    <span class="badge bg-light text-secondary border font-monospace" id="states-count"></span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="input-group input-group-sm mb-2">
+                        <input type="text" id="input-new-state" class="form-control font-monospace" placeholder="e.g. q0, q1, S0" maxlength="15">
+                        <button class="btn btn-outline-primary" type="button" id="btn-add-state">
+                            <i class="bi bi-plus-lg"></i> Add State
+                        </button>
+                    </div>
+                    <div class="chip-container" id="states-chip-container">
+                        <!-- Dynamic State Chips -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Alphabet Management Card -->
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                    <span class="builder-section-title mb-0"><i class="bi bi-alphabet"></i> 2. Alphabet Symbols (&Sigma;)</span>
+                    <span class="badge bg-light text-secondary border font-monospace" id="alphabet-count"></span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="input-group input-group-sm mb-2">
+                        <input type="text" id="input-new-symbol" class="form-control font-monospace" placeholder="e.g. 0, 1, a, b" maxlength="4">
+                        <button class="btn btn-outline-primary" type="button" id="btn-add-symbol">
+                            <i class="bi bi-plus-lg"></i> Add Symbol
+                        </button>
+                    </div>
+                    <div class="chip-container" id="alphabet-chip-container">
+                        <!-- Dynamic Alphabet Chips -->
+                    </div>
+                    <small class="text-muted d-block mt-1 font-monospace" style="font-size:0.75rem;">
+                        Note: Epsilon (&epsilon;, &lambda;) transitions are strictly prohibited.
+                    </small>
+                </div>
+            </div>
+
+            <!-- 3. Initial & Accepting States Card -->
+            <div class="card mb-3">
+                <div class="card-header py-2">
+                    <span class="builder-section-title mb-0"><i class="bi bi-flag"></i> 3. Start &amp; Final States</span>
+                </div>
+                <div class="card-body p-3">
+                    <div class="mb-3">
+                        <label for="select-initial-state" class="form-label small fw-bold text-secondary mb-1">Initial State (Start)</label>
+                        <select id="select-initial-state" class="form-select form-select-sm font-monospace">
+                            <!-- Dynamic Options -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label small fw-bold text-secondary mb-1">Accepting States (Final)</label>
+                        <div id="accepting-checkboxes-container" class="p-2 border rounded bg-light">
+                            <!-- Dynamic Checkboxes -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Transition Editor Card -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                    <span class="builder-section-title mb-0"><i class="bi bi-arrow-left-right"></i> 4. Transitions (&delta;)</span>
+                    <span class="badge bg-primary rounded-pill font-monospace" id="transition-count-badge">0</span>
+                </div>
+                <div class="card-body p-3">
+                    <!-- Add Transition Controls -->
+                    <div class="row g-2 align-items-center mb-3">
+                        <div class="col-4">
+                            <label class="small text-muted font-monospace mb-1">From State</label>
+                            <select id="trans-from" class="form-select form-select-sm font-monospace"></select>
+                        </div>
+                        <div class="col-3">
+                            <label class="small text-muted font-monospace mb-1">Symbol</label>
+                            <select id="trans-symbol" class="form-select form-select-sm font-monospace"></select>
+                        </div>
+                        <div class="col-4">
+                            <label class="small text-muted font-monospace mb-1">To State</label>
+                            <select id="trans-to" class="form-select form-select-sm font-monospace"></select>
+                        </div>
+                        <div class="col-1 d-flex align-items-end">
+                            <button id="btn-add-transition" class="btn btn-primary btn-sm w-100" title="Add Transition">
+                                <i class="bi bi-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Existing Transitions List -->
+                    <label class="small text-muted font-monospace mb-1">Current Transitions</label>
+                    <div class="transition-list-box" id="transition-list-container">
+                        <!-- Dynamic items -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Live Visualizer & Transition Table -->
+        <div class="col-lg-7 col-xl-8">
+            <!-- Cytoscape NFA Graph Card -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-bold text-slate-900"><i class="bi bi-diagram-3 me-1 text-primary"></i> Live NFA Graph</span>
+                        <span class="badge bg-light text-secondary border font-monospace small">Directed Multigraph</span>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-secondary py-1 px-2" id="btn-fit-graph" title="Fit to Screen">
+                            <i class="bi bi-arrows-fullscreen"></i> Fit
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary py-1 px-2" id="btn-reset-layout" title="Reset Layout">
+                            <i class="bi bi-arrow-repeat"></i> Reset Layout
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0 position-relative">
+                    <div id="nfa-builder-graph" class="graph-container"></div>
+                    <div class="graph-legend">
+                        <div class="legend-item"><span class="legend-dot initial"></span> <span>Initial (&rarr;)</span></div>
+                        <div class="legend-item"><span class="legend-dot accepting"></span> <span>Accepting (*)</span></div>
+                        <div class="legend-item"><span class="legend-dot dead"></span> <span>Dead State (&empty;)</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NFA Transition Table Card -->
+            <div class="card">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-slate-900"><i class="bi bi-table me-1 text-primary"></i> NFA Transition Table</span>
+                    <small class="text-muted font-monospace">&empty; = 0 transitions (Legal in NFA; completed in DFA)</small>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover table-automata mb-0">
+                            <thead id="nfa-table-head"></thead>
+                            <tbody id="nfa-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="p-2 px-3 bg-light border-top small text-secondary">
+                        <i class="bi bi-info-circle me-1 text-primary"></i> <b>TOC Note:</b> In an NFA, states can have <b>0 transitions (&empty;)</b>, 1 transition, or multiple transitions. When converted, the DFA guarantees <b>exactly 1 transition per symbol</b> for every state!
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/graph.js') }}?v=3.3"></script>
+<script src="{{ url_for('static', filename='js/builder.js') }}?v=3.3"></script>
+{% endblock %}
+

@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}String Simulator | Dual NFA & DFA Execution{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/simulation.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-lg-4 py-4">
+    <!-- Header with Action Links -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 pb-3 mb-3 border-bottom">
+        <div>
+            <h3 class="fw-bold text-slate-900 mb-0">Input String Simulator</h3>
+            <p class="text-secondary small mb-0">Test words simultaneously on both automata and observe how state paths branch vs stay deterministic.</p>
+        </div>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <a href="/builder" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-pencil-square"></i> Edit NFA
+            </a>
+            <a href="/conversion" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-shuffle"></i> Conversion Studio
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Non-Tech Theory Card (Collapsible) -->
+    <div class="card mb-4 border-primary-subtle bg-light shadow-sm">
+        <div class="card-body p-3">
+            <div class="d-flex align-items-center justify-content-between cursor-pointer" data-bs-toggle="collapse" data-bs-target="#simTheoryCollapse" aria-expanded="true">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-primary rounded-circle p-2"><i class="bi bi-lightbulb-fill"></i></span>
+                    <span class="fw-bold text-slate-900">How String Simulation Works (The Non-Tech Intuition)</span>
+                </div>
+                <button class="btn btn-sm btn-link text-decoration-none text-primary p-0">Toggle Guide <i class="bi bi-chevron-down"></i></button>
+            </div>
+            <div class="collapse show mt-3 pt-3 border-top" id="simTheoryCollapse">
+                <div class="row g-3 small">
+                    <div class="col-md-4">
+                        <div class="p-3 bg-white rounded border h-100">
+                            <h6 class="fw-bold text-primary mb-1"><i class="bi bi-people-fill me-1"></i> 1. NFA: The "Team"</h6>
+                            <p class="text-secondary mb-0">
+                                When reading a letter, the NFA can explore multiple arrows at once. It splits itself like a team. At the end, if <b>at least one member</b> of the team is on an accepting state, the word is <b>ACCEPTED</b>!
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-white rounded border h-100">
+                            <h6 class="fw-bold text-success mb-1"><i class="bi bi-person-fill me-1"></i> 2. DFA: The "Single Explorer"</h6>
+                            <p class="text-secondary mb-0">
+                                The DFA only ever has <b>ONE active state</b>. For every letter, it follows exactly one guaranteed arrow. At the end, if that single state is accepting, the word is <b>ACCEPTED</b>!
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="p-3 bg-white rounded border h-100">
+                            <h6 class="fw-bold text-dark mb-1"><i class="bi bi-check2-all text-success me-1"></i> 3. Perfect Agreement</h6>
+                            <p class="text-secondary mb-0">
+                                Even though the NFA branches into groups and the DFA takes a single path, the Subset Construction guarantees they <b>always agree</b> on the final Accepted or Rejected verdict!
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- String Input Bar Card -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body p-3">
+            <div class="row g-3 align-items-center">
+                <div class="col-lg-5">
+                    <label for="input-sim-string" class="form-label small fw-bold text-secondary mb-1">
+                        Input String to Test <span class="badge bg-light text-secondary border font-monospace ms-1" id="sim-alphabet-hint">{ 0, 1 }</span>
+                    </label>
+                    <div class="input-group">
+                        <input type="text" id="input-sim-string" class="form-control font-monospace" placeholder="e.g. 01, 1001, 00" maxlength="80">
+                        <button class="btn btn-primary px-3 fw-semibold" id="btn-run-both">
+                            <i class="bi bi-play-circle-fill me-1"></i> Run Simulation
+                        </button>
+                    </div>
+                </div>
+                <div class="col-lg-7">
+                    <label class="form-label small fw-bold text-secondary mb-1">Quick Test Samples:</label>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <div id="sim-quick-samples-container" class="d-inline-flex flex-wrap align-items-center gap-1">
+                            <!-- Dynamic samples populated by simulator.js -->
+                        </div>
+                        <div class="ms-auto d-flex gap-1">
+                            <button class="btn btn-sm btn-outline-primary" id="btn-run-nfa">NFA Only</button>
+                            <button class="btn btn-sm btn-outline-success" id="btn-run-dfa">DFA Only</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Simulation Results & Playback (Hidden until run) -->
+    <div id="simulation-result-container" class="d-none">
+        <!-- Acceptance Result Banner -->
+        <div id="sim-acceptance-banner" class="result-banner accepted mb-3">
+            <div id="sim-banner-title" class="d-flex align-items-center gap-2"></div>
+            <div id="sim-banner-desc" class="small flex-grow-1 font-monospace"></div>
+        </div>
+
+        <!-- Simulation Step Playback Bar -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-body p-3">
+                <div class="playback-bar">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="step-indicator" id="sim-step-counter">Step 0 of 0</span>
+                    </div>
+
+                    <div class="playback-buttons">
+                        <button class="btn btn-outline-secondary btn-sm" id="btn-sim-start" title="First Step">
+                            <i class="bi bi-skip-start-fill"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" id="btn-sim-prev" title="Previous Step">
+                            <i class="bi bi-chevron-left"></i> Prev
+                        </button>
+                        <button class="btn btn-primary btn-sm px-3 fw-semibold" id="btn-sim-play" title="Play Simulation">
+                            <i class="bi bi-play-fill"></i> Play
+                        </button>
+                        <button class="btn btn-warning btn-sm px-3 fw-semibold d-none" id="btn-sim-pause" title="Pause">
+                            <i class="bi bi-pause-fill"></i> Pause
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" id="btn-sim-next" title="Next Step">
+                            Next <i class="bi bi-chevron-right"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" id="btn-sim-reset" title="Reset">
+                            <i class="bi bi-arrow-counterclockwise"></i> Reset
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <input type="range" class="form-range" id="sim-step-slider" min="0" max="0" value="0">
+                </div>
+
+                <!-- Live Step Ticker -->
+                <div id="sim-live-ticker" class="mt-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side-by-Side Automata Visualizations during Simulation -->
+    <div class="row g-4 mb-4">
+        <!-- NFA Visualizer -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-bold text-slate-900"><i class="bi bi-diagram-3 me-1 text-primary"></i> Source NFA</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary font-monospace small">Branching Team</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary py-0 px-2" id="btn-fit-sim-nfa"><i class="bi bi-arrows-fullscreen"></i></button>
+                </div>
+                <div class="card-body p-0 position-relative">
+                    <div id="sim-nfa-graph" class="graph-container"></div>
+                    <div class="graph-legend">
+                        <div class="legend-item"><span class="legend-dot initial"></span> <span>Start (&rarr;)</span></div>
+                        <div class="legend-item"><span class="legend-dot accepting"></span> <span>Accepting (*)</span></div>
+                        <div class="legend-item"><span class="legend-dot dead"></span> <span>Dead State (&empty;)</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DFA Visualizer -->
+        <div class="col-lg-6">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fw-bold text-slate-900"><i class="bi bi-diagram-3-fill me-1 text-success"></i> Generated DFA</span>
+                        <span class="badge bg-success bg-opacity-10 text-success font-monospace small">Single Explorer</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-secondary py-0 px-2" id="btn-fit-sim-dfa"><i class="bi bi-arrows-fullscreen"></i></button>
+                </div>
+                <div class="card-body p-0 position-relative">
+                    <div id="sim-dfa-graph" class="graph-container"></div>
+                    <div class="graph-legend">
+                        <div class="legend-item"><span class="legend-dot initial"></span> <span>Start (&rarr;)</span></div>
+                        <div class="legend-item"><span class="legend-dot accepting"></span> <span>Accepting (*)</span></div>
+                        <div class="legend-item"><span class="legend-dot dead"></span> <span>Dead State (&empty;)</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Execution Trace Tables Grid -->
+    <div class="row g-4 mb-4">
+        <!-- NFA Trace Table Card -->
+        <div class="col-lg-6" id="card-nfa-trace">
+            <div class="card h-100">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-slate-900"><i class="bi bi-list-columns-reverse me-1 text-primary"></i> NFA Branching Trace</span>
+                    <small class="text-muted">Click any row to jump to that step</small>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                        <table class="table table-sm table-bordered table-hover table-trace mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th style="width: 50px;">Step</th>
+                                    <th style="width: 100px;">Read</th>
+                                    <th style="width: 150px;">Active States</th>
+                                    <th>Step Explanation</th>
+                                </tr>
+                            </thead>
+                            <tbody id="nfa-trace-tbody">
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted p-4">Enter a string above and click Run to generate execution traces.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DFA Trace Table Card -->
+        <div class="col-lg-6" id="card-dfa-trace">
+            <div class="card h-100">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <span class="fw-bold text-slate-900"><i class="bi bi-list-columns-reverse me-1 text-success"></i> DFA Deterministic Trace</span>
+                    <small class="text-muted">Click any row to jump to that step</small>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 380px; overflow-y: auto;">
+                        <table class="table table-sm table-bordered table-hover table-trace mb-0">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th style="width: 50px;">Step</th>
+                                    <th style="width: 100px;">Read</th>
+                                    <th style="width: 170px;">Active DFA State</th>
+                                    <th>Step Explanation</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dfa-trace-tbody">
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted p-4">Enter a string above and click Run to generate execution traces.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/graph.js') }}?v=3.4"></script>
+<script src="{{ url_for('static', filename='js/simulator.js') }}?v=3.4"></script>
+{% endblock %}
