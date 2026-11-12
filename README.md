@@ -1,4 +1,5 @@
-# Interactive NFA-to-DFA Conversion & Simulation Studio (TOC Project) — Group ID: [Group ID]
+# Interactive NFA-to-DFA Conversion & Simulation Studio (TOC Project) — Group ID:
+G4
 
 > **Academic Project:** Theory of Computation (TOC) / Automata Theory and Computability  
 > **Repository:** [Automata-Theory-and-Computability](https://github.com/ShauriyaDeveloper1/Automata-Theory-and-Computability)
@@ -237,7 +238,7 @@ All **46 automated tests** pass (`46 passed`), verifying mathematical accuracy a
 
 ## Team Contributions and Acknowledgements
 
-- **Author / Group:** `[Group ID]` — **ShauriyaDeveloper1** *(Theory of Computation Academic Project Team)*
+- **Author / Group:** `G4` — **Shauriya Garg, Sarthak Maheshwari, Sagar Goyal, Rohit Mukhopadhyay, Aditya Goswami** *(Theory of Computation Academic Project Team)*
 - **Module Responsibilities:**
   - **Core Automata & Algorithm Design:** Pure-Python Subset Construction engine, validation module, dead state completion, and dual string simulator (`automata/`, `examples/`).
   - **Backend API & Test Suite:** Flask application factory, REST endpoints, CSV/JSON serialization, and 46 `pytest` unit/integration tests (`app.py`, `routes/`, `tests/`).
