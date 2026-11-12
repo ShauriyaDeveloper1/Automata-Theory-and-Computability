@@ -1,7 +1,6 @@
-# Interactive NFA-to-DFA Conversion & Simulation Studio (TOC Project) — Group ID:
-G4
+# Interactive NFA-to-DFA Conversion & Simulation Studio (TOC Project) — Group ID:G4
 
-> **Academic Project:** Theory of Computation (TOC) / Automata Theory and Computability  
+> **Academic Project:** Automata Theory and Computability  
 > **Repository:** [Automata-Theory-and-Computability](https://github.com/ShauriyaDeveloper1/Automata-Theory-and-Computability)
 
 ---
